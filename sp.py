@@ -6,6 +6,9 @@ from openpyxl.styles import Font  # Importa Font para estilizar las celdas de Ex
 from openpyxl.drawing.image import Image  # Importa Image para añadir imágenes a los archivos Excel
 
 ARCHIVO_ESPECIFICACIONES_EXCEL = 'Especificaciones_SPPHYWE2024.xlsx'  # Define el nombre del archivo de especificaciones
+# Bloque de código para definir rutas de archivos y directorios, y ejecutar las funciones definidas anteriormente
+script_actual = os.path.realpath(__file__)  # Obtiene la ruta absoluta del script en ejecución
+script_directory = os.path.dirname(script_actual)  # Obtiene el directorio donde se encuentra el script
 
 # Función para solicitar al usuario que ingrese un número dentro de un conjunto de opciones válidas
 def solicitar_entrada_numerica(mensaje, opciones_validas):
@@ -262,9 +265,7 @@ def crear_csv_cot(ruta_del_archivo):
 
 def main():
 
-    # Bloque de código para definir rutas de archivos y directorios, y ejecutar las funciones definidas anteriormente
-    script_actual = os.path.realpath(__file__)  # Obtiene la ruta absoluta del script en ejecución
-    script_directory = os.path.dirname(script_actual)  # Obtiene el directorio donde se encuentra el script
+
 
     archivos = os.listdir(script_directory)  # Lista los archivos en el directorio del script
 

@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 from tkinter import filedialog, messagebox
 import sp
+import pandas as pd
 
 def on_validate(P):
     # P es el valor propuesto para el texto del Entry: acepta si es vacío (lo que permite borrar) o si es numérico
@@ -27,10 +28,30 @@ def move_to_references():
     for i in selected:
         ref_listbox.insert(tk.END, selected_listbox.get(i))
         selected_listbox.delete(i)
+def on_combobox_change(event,combobox_var,values):
+    # Obtiene el texto actual del combobox
+    current_text = combobox_var.get()
+    
+    # Encuentra la coincidencia más cercana de la lista de valores
+    closest_match = find_closest_match(current_text, values)
+    
+    # Si hay una coincidencia cercana, actualiza el texto del combobox con ese valor
+    if closest_match:
+        combobox_var.set(closest_match)
+    else:
+        # Si no hay ninguna coincidencia, limpia el combobox
+        combobox_var.set('')
+
+def find_closest_match(text, values_list):
+    # Encuentra el valor más cercano que comience con el texto ingresado
+    for value in values_list:
+        if value.lower().startswith(text.lower()):
+            return value
+    return None
 
 root = tk.Tk()
 root.title("Crear Oferta")
-root.geometry("1350x400")
+root.geometry("1460x400")
 root.resizable(False,False)
 root.iconbitmap(r"C:\Users\K\Documents\Proyectos\ofertaElectroInterfaz\imagen.ico")
 
@@ -65,12 +86,6 @@ style.configure('Custom.TEntry',
                 background=colordefondo)
 style.configure("Switch.TCheckbutton", background=colordefondo, 
                 foreground=foregroundvariable)
-
-# root.tk.call("source", r"C:\Users\K\Documents\Proyectos\Forest-ttk-theme\forest-dark.tcl")
-# # Create a style
-# style = ttk.Style(root)
-# # Set the theme with the theme_use method
-# style.theme_use("forest-dark")
 
 # Layout configuration
 root.grid_rowconfigure(0, weight=2)
@@ -126,37 +141,118 @@ examine_button.grid(row=1, column=1, sticky='ew',pady=(0, 10))
 #########################################################
 
 
-valores_para_listas=[['Q3-2024','Q4-2024','Q1-2025','Q2-2025','Q3-2025','Q4-2025']]
+valores_para_listas=[['Q3-2024','Q4-2024','Q1-2025','Q2-2025','Q3-2025','Q4-2025'],
+                     sp.gastos_de_viaje()]
 vcmd = (root.register(on_validate), '%P')
-labels = ["Improvistos:", "Estampillas:", "Trimestre Esperado:", "Ciudad:", "Institución:"]
-for i, label in enumerate(labels, 4):
-    ttk.Label(left_frame, text=label,style="Large.TLabel").grid(row=i, column=0, sticky="w",pady=(0, 10))
-    if i < 6:
-        entry = ttk.Entry(left_frame,validate='key',validatecommand=vcmd,style='Custom.TEntry')
-        entry.grid(row=i, column=1, sticky="ew", pady=(0, 10))
-    else:
-        combobox = ttk.Combobox(left_frame)
-        combobox.grid(row=i, column=1, sticky="ew", pady=(0, 10))
+label = ["Improvistos:", "Estampillas:","Institución", "Trimestre Esperado:", 
+          "Ciudad:"]
+
+improvistosVariable=tk.StringVar()
+improvistos=ttk.Label(left_frame, text=label[0],style="Large.TLabel")
+improvistos.grid(row=4, column=0, sticky="w",pady=(0, 10))
+
+estampillasVariable=tk.StringVar()
+estampillas=ttk.Label(left_frame, text=label[1],style="Large.TLabel")
+estampillas.grid(row=5, column=0, sticky="w",pady=(0, 10))
+
+institucionVariable=tk.StringVar()
+institucion=ttk.Label(left_frame, text=label[2],style="Large.TLabel")
+institucion.grid(row=6, column=0, sticky="w",pady=(0, 10))
+
+
+trimistre=ttk.Label(left_frame, text=label[3],style="Large.TLabel")
+trimistre.grid(row=7, column=0, sticky="w",pady=(0, 10))
+
+ciudad=ttk.Label(left_frame, text=label[4],style="Large.TLabel")
+ciudad.grid(row=8, column=0, sticky="w",pady=(0, 10))
+
+improvistosEntry=ttk.Entry(left_frame,validate='key',validatecommand=vcmd,
+                           style='Custom.TEntry',textvariable=improvistosVariable)
+improvistosEntry.grid(row=4, column=1, sticky="ew", pady=(0, 10))
+
+estampillasEntry=ttk.Entry(left_frame,validate='key',validatecommand=vcmd,
+                           style='Custom.TEntry',textvariable=estampillasVariable)
+estampillasEntry.grid(row=5, column=1, sticky="ew", pady=(0, 10))
+
+institucionEntry=ttk.Entry(left_frame,style='Custom.TEntry',textvariable=institucionVariable)
+institucionEntry.grid(row=6, column=1, sticky="ew", pady=(0, 10))
+
+combovar=tk.StringVar()
+comboovar=tk.StringVar()
+
+combobox = ttk.Combobox(left_frame,values=valores_para_listas[0],textvariable=combovar)
+combobox.grid(row=7, column=1, sticky="ew", pady=(0, 10))
+comboobox = ttk.Combobox(left_frame,values=valores_para_listas[1],textvariable=comboovar)
+comboobox.grid(row=8, column=1, sticky="ew", pady=(0, 10))
+
+combobox.bind('<FocusOut>', 
+              lambda event, a=combovar,b=valores_para_listas[0]:on_combobox_change(event,a,b))
+combobox.bind('<Return>', 
+              lambda event, a=combovar,b=valores_para_listas[0]:on_combobox_change(event,a,b))
+comboobox.bind('<FocusOut>', 
+              lambda event, a=comboovar,b=valores_para_listas[1]:on_combobox_change(event,a,b))
+comboobox.bind('<Return>', 
+              lambda event, a=comboovar,b=valores_para_listas[1]:on_combobox_change(event,a,b))
 
 
 #########################################################
-#SECCION REFERENCIAS
+#SECCION REFERENCIAS Y MARCA
 #########################################################
 
 right_frame = ttk.Frame(root,style='Custom.TFrame')
-right_frame.grid(row=0, column=1, sticky="nsew", padx=10, pady=10)
+right_frame.grid(row=0, column=1, padx=0, pady=10)
 right_frame.grid_rowconfigure(2, weight=1)
 right_frame.grid_rowconfigure(1, weight=1)
 right_frame.grid_rowconfigure(0, weight=1)
 right_frame.grid_rowconfigure(3, weight=1)
 right_frame.grid_columnconfigure(0, weight=1)
-ttk.Label(right_frame, text="Referencias",style="Bold.TLabel").grid(row=0, column=0)
-search_entry = ttk.Entry(right_frame)
-search_entry.grid(row=1, column=0, sticky="ew")
+right_frame.grid_columnconfigure(1, weight=1)
 
+top_frame= ttk.Frame(right_frame,style='Custom.TFrame')
+top_frame.grid(row=0,column=0,sticky='ew')
+top_frame.grid_columnconfigure(0, weight=1)
+top_frame.grid_columnconfigure(1, weight=1)
+top_frame.grid_rowconfigure(1, weight=1)
+top_frame.grid_rowconfigure(0, weight=1)
+
+carpetasPosibles=['PHY','TER','3B','ELECTRO','LN','EUR']
+carpetaVariable=tk.StringVar()
+nombreCarpeta=ttk.Label(top_frame,text="Carpeta",style="Bold.TLabel")
+nombreCarpeta.grid(row=0, column=2,sticky='w',pady=(0,10))
+carpeta=ttk.Combobox(top_frame,style='Custom.TCombobox',values=carpetasPosibles,
+                   textvariable=carpetaVariable)
+carpeta.grid(row=0,column=3,padx=(30,0),pady=(0,10),sticky='w')
+
+carpeta.bind('<FocusOut>', 
+              lambda event, a=carpetaVariable,b=carpetasPosibles:on_combobox_change(event,a,b))
+carpeta.bind('<Return>', 
+              lambda event, a=carpetaVariable,b=carpetasPosibles:on_combobox_change(event,a,b))
+
+marcalabel=ttk.Label(top_frame, text="Marca",style="Bold.TLabel")
+marcalabel.grid(row=0, column=0,sticky='ns',pady=(0,10))
+reflabel=ttk.Label(top_frame, text="Referencias",style="Bold.TLabel")
+reflabel.grid(row=1, column=0,sticky='ns',pady=(0,10))
+
+marcaslista=['PHYWE','EUROMEX']
+marcavariable=tk.StringVar()
+marca=ttk.Combobox(top_frame,style='Custom.TCombobox',values=marcaslista,
+                   textvariable=marcavariable)
+marca.grid(row=0,column=1,padx=(30,0),pady=(0,10),sticky='w')
+
+marca.bind('<FocusOut>', 
+              lambda event, a=marcavariable,b=marcaslista:on_combobox_change(event,a,b))
+marca.bind('<Return>', 
+              lambda event, a=marcavariable,b=marcaslista:on_combobox_change(event,a,b))
+
+
+search_entry = ttk.Entry(top_frame,style='Custom.TEntry')
+search_entry.grid(row=1, column=1, columnspan=3, padx=(30,0), pady=(0,10),sticky='ew')
+
+##########################
 # Listboxes with scrollbar
+##########################
 listbox_frame = ttk.Frame(right_frame,style='Custom.TFrame')
-listbox_frame.grid(row=2, column=0, columnspan=2, sticky="nsew", pady=(10, 10))
+listbox_frame.grid(row=2, column=0,  sticky="nsew", pady=(10, 10))
 
 listbox_frame.grid_rowconfigure(0,weight=1)
 listbox_frame.grid_columnconfigure(0,weight=1)
@@ -173,41 +269,52 @@ scrollbar2=ttk.Scrollbar(listbox_frame, orient="vertical")
 scrollbar2.grid(row=0, column=4, sticky="ns")
 
 
-ref_listbox = tk.Listbox(listbox_frame, exportselection=False, yscrollcommand=scrollbar.set)
-ref_listbox.grid(row=0, column=0, sticky="nsew")
+ref_listbox = tk.Listbox(listbox_frame, exportselection=False, 
+                         yscrollcommand=scrollbar.set,width=50)
+ref_listbox.grid(row=0, column=0, sticky="w")
 scrollbar.config(command=ref_listbox.yview)
 
-selected_listbox = tk.Listbox(listbox_frame, exportselection=False,yscrollcommand=scrollbar2.set)
-selected_listbox.grid(row=0, column=3, sticky="nsew")
+selected_listbox = tk.Listbox(listbox_frame, exportselection=False,
+                              yscrollcommand=scrollbar2.set,width=50)
+selected_listbox.grid(row=0, column=3, sticky="e")
 scrollbar2.config(command=selected_listbox.yview)
 
 #Buttons to move items between listboxes
 btn_frame = ttk.Frame(listbox_frame,style='Custom.TFrame')
-btn_frame.grid(row=0, column=2, sticky="nsew",padx=(9,9))
+btn_frame.grid(row=0, column=2, sticky="nsew",padx=(5,5))
 
 # Configurar las filas del frame de botones para que se expandan igualmente
 btn_frame.grid_rowconfigure(0, weight=1)  # Fila por encima de los botones
-btn_frame.grid_rowconfigure(2, weight=1)  # Fila por encima de los botones
-btn_frame.grid_rowconfigure(4, weight=1)  # Fila por encima de los botones
+btn_frame.grid_rowconfigure(2, weight=1)  
+btn_frame.grid_rowconfigure(4, weight=1)  
 btn_frame.grid_rowconfigure(1, weight=1)  # Puedes ajustar este peso si necesitas más control sobre la posición de los botones
 btn_frame.grid_rowconfigure(3, weight=1)  # Fila entre los botones (si deseas espacio entre ellos)
 btn_frame.grid_rowconfigure(5, weight=1)  # Fila por debajo de los botones
 btn_frame.grid_columnconfigure(0,weight=1)
 
 move_to_selected_button = ttk.Button(btn_frame, text=" → ", 
-                                     command=move_to_selected, width=2,
+                                     command=move_to_selected, width=5,
                                      style="Custom.TButton")
-move_to_selected_button.grid(row=2,column=0,sticky='nsew')
+move_to_selected_button.grid(row=2,column=0,sticky='ew')
 
 move_to_references_button = ttk.Button(btn_frame, text=" ← ",
-                                       command=move_to_references, width=2,
+                                       command=move_to_references, width=5,
                                        style="Custom.TButton")
 
-move_to_references_button.grid(row=4,column=0,sticky='nsew')
+move_to_references_button.grid(row=4,column=0,sticky='ew')
 
-###############################################
-#RADIO BUTTONS FOR OFFER AND OPERATIVE EXPENSES
-###############################################
+def agregar_nombres_a_listbox(tupla_nombres,listbox):
+    for indice, nombre in tupla_nombres:
+
+        listbox.insert(tk.END, str(indice)+" - "+str(nombre))
+
+
+agregar_nombres_a_listbox(sp.nombres_de_basedeDatos().items(),ref_listbox)
+
+
+#########################
+#RADIO BUTTONS FOR OFFER 
+#########################
 
 
 # Radio button options (independent groups)
@@ -217,10 +324,9 @@ radio_values = {
     "Canal": tk.StringVar(value="Institucional")
 }
 
-
 # Creating the radio buttons for each option
 options_frame = ttk.Frame(right_frame,style='Custom.TFrame')
-options_frame.grid(row=3, column=0, sticky="ew")
+options_frame.grid(row=3, column=0)
 options_frame.grid_columnconfigure(0,weight=1)
 options_frame.grid_columnconfigure(1,weight=1)
 options_frame.grid_columnconfigure(2,weight=1)
@@ -264,7 +370,7 @@ switch_var = tk.BooleanVar()
 
 
 right_right_frame=ttk.Frame(root,style='Custom.TFrame')
-right_right_frame.grid(row=0,column=2,sticky="nsew", padx=10, pady=10)
+right_right_frame.grid(row=0,column=2,sticky="nsew", pady=10)
 right_right_frame.grid_columnconfigure(0,weight=1)
 right_right_frame.grid_rowconfigure(0,weight=1)
 right_right_frame.grid_rowconfigure(1,weight=0)
@@ -272,26 +378,49 @@ right_right_frame.grid_rowconfigure(2,weight=1)
 right_right_frame.grid_rowconfigure(3,weight=1)
 
 firstframe=ttk.Frame(right_right_frame,style='Custom.TFrame')
-firstframe.grid(row=1,column=0,sticky='ns',pady=(10,10))
+firstframe.grid(row=1,column=0,sticky='ns',pady=(10,10),padx=10)
 secondframe=ttk.Frame(right_right_frame,style='Custom.TFrame')
-secondframe.grid(row=2,column=0,sticky='ns')
+secondframe.grid(row=2,column=0,sticky='ns',pady=(10,10),padx=10)
 thirdframe=ttk.Frame(right_right_frame,style='Custom.TFrame')
-thirdframe.grid(row=3,column=0,sticky='nsew')
+thirdframe.grid(row=3,column=0,sticky='nsew',pady=(10,10),padx=10)
 
 thirdframe.grid_columnconfigure(0,weight=1)
 thirdframe.grid_rowconfigure(0,weight=1)
 
+nombreFinal=ttk.Label(thirdframe, text="Nombre final de carpeta",style="Bold.TLabel")
+nombreFinal.grid(row=0, column=0,sticky='ns',pady=(0, 0))
+
+nombreCarpetaFinalVariable=tk.StringVar()
+
+nombreCarpetaFinal=ttk.Entry(thirdframe,textvariable=nombreCarpetaFinalVariable)
+nombreCarpetaFinal.grid(row=1,column=0,sticky='ew',pady=(0, 20))
+
 dobutton=ttk.Button(thirdframe, text="Crear SP",command=browse_file,style="Custom.TButton")
-dobutton.grid(row=0, column=0, sticky='ew',pady=(0, 10))
+dobutton.grid(row=2, column=0, sticky='ew',pady=(0, 10))
+
+def actualizar_entry1(*args):
+    # Concatenar los valores de Entry2, Entry3, Combobox1 y variable_uno
+    prefijo = carpetaVariable.get()
+    nombredelainstitucion=institucionVariable.get()+ " "
+    comercial=variableControl.get().split('/')[-1][:-4]
+    consecutivo=prefijo+" "+str(sp.obtener_nuevo_consecutivo(prefijo))+"-24 "
+    valor_actualizado = consecutivo+nombredelainstitucion+comercial
+    # Actualizar el valor de Entry1
+    nombreCarpetaFinalVariable.set(valor_actualizado)
+
+carpetaVariable.trace_add('write', actualizar_entry1)
+institucionVariable.trace_add('write', actualizar_entry1)
+variableControl.trace_add('write', actualizar_entry1)
+carpeta.bind('<<ComboboxSelected>>', actualizar_entry1)
 
 
 gastosope=ttk.Label(firstframe, text="Gastos Operativos",style="Bold.TLabel")
-gastosope.grid(row=0, column=0,sticky='ew')
+gastosope.grid(row=0, column=0,sticky='ew',pady=(0, 10))
 
 switch_button=ttk.Checkbutton(firstframe,style="Switch.TCheckbutton", text="", 
                               variable=switch_var, 
                               onvalue=True, offvalue=False, command=on_switch)
-switch_button.grid(row=0,column=1,padx=10)
+switch_button.grid(row=0,column=1,padx=10,pady=(0, 10))
 
 num_pro=ttk.Label(secondframe,text='Número de profesionales: ',style="Large.TLabel")
 num_pro.grid(row=0,column=0,sticky='ew',pady=(0,10))
@@ -299,27 +428,14 @@ num_pro.grid(row=0,column=0,sticky='ew',pady=(0,10))
 num_dias=ttk.Label(secondframe,text='Días: ',style="Large.TLabel")
 num_dias.grid(row=1,column=0,sticky='ew',pady=(0,10))
 
-interm=ttk.Label(secondframe,text='Transporte intermunicipal: ',style="Large.TLabel")
-interm.grid(row=2,column=0,sticky='ew',pady=(0,10))
-
-gastos=ttk.Label(secondframe,text='Otros gastos',style="Large.TLabel")
-gastos.grid(row=3,column=0,sticky='ew',pady=(0,10))
-
-
 profesionales=ttk.Entry(secondframe,validate='key',validatecommand=vcmd)
 profesionales.grid(row=0,column=1,sticky='ew',pady=(0,10))
 
 dias=ttk.Entry(secondframe,validate='key',validatecommand=vcmd)
 dias.grid(row=1,column=1,sticky='ew',pady=(0,10))
 
-tinter=ttk.Entry(secondframe)
-tinter.grid(row=2,column=1,sticky='ew',pady=(0,10))
 
-gastoss=ttk.Entry(secondframe)
-gastoss.grid(row=3,column=1,sticky='ew',pady=(0,10))
-
-
-widgets_to_control=[profesionales,dias,tinter,gastoss]
+widgets_to_control=[profesionales,dias]
 on_switch()
 
 # Start the application

@@ -44,9 +44,7 @@ def extraer_datos_Usuario():
 
 # Función para encontrar un archivo PDF que comience con 'FSC' y extraer un nombre comercial basado en un código presente en el nombre del archivo
 def encontrar_pdf_y_extraer_nombre(archivo):
-    """
-    
-    """
+
     nombres_Comercial = {
         'CG': 'CAROLINA GAITAN',
         'ER': 'ESTEBAN RAMIREZ',
@@ -263,9 +261,42 @@ def crear_csv_cot(ruta_del_archivo):
     output_file = os.path.join(script_directory, 'PHYWEQUOTE.csv')
     nuevoDF.to_csv(output_file, sep=';', index=False)
 
+def gastos_de_viaje():
+    ruta_gastos= os.path.join(script_directory, 'SP.xlsx')
+    data=pd.read_excel(ruta_gastos,index_col=0,sheet_name='TARIFAS')
+    return data.index.to_list()
+
+def baseDeDatos_dataFrame():
+    ruta_BasedeDatos = os.path.join(script_directory, ARCHIVO_ESPECIFICACIONES_EXCEL)
+    df = pd.read_excel(ruta_BasedeDatos, index_col=0)
+    df = df.drop(columns=['FILTRADO'])
+    return df  
+def nombres_de_basedeDatos():
+    df=baseDeDatos_dataFrame()
+    indices=df.index.tolist()
+    nombres=df.loc[:,'DESCRIPCION']
+    return nombres
+
+import re
+def obtener_nuevo_consecutivo(prefijo):
+    """
+    Dado un prefijo, esta función busca en el directorio actual por carpetas
+    que comiencen con ese prefijo, extrae el número consecutivo, y devuelve
+    el último consecutivo encontrado más uno.
+    """
+    consecutivo_maximo = 0
+    pattern = re.compile(rf"^{prefijo}\s+(\d+)-")
+
+    for carpeta in os.listdir(script_directory):
+        full_path = os.path.join(script_directory, carpeta)
+        if os.path.isdir(full_path):
+            match = pattern.match(carpeta)
+            if match:
+                consecutivo_actual = int(match.group(1))
+                consecutivo_maximo = max(consecutivo_maximo, consecutivo_actual)    
+    return consecutivo_maximo + 1
+
 def main():
-
-
 
     archivos = os.listdir(script_directory)  # Lista los archivos en el directorio del script
 
@@ -283,10 +314,7 @@ def main():
 
     encabezado=(imprevistos,estampillas,presupuesto,trimestre,ciudad, nombre_encontrado)
 
-    # Carga los datos de la base de datos en un DataFrame de pandas y solicita al usuario que ingrese referencias para buscar
-    ruta_BasedeDatos = os.path.join(script_directory, '..', ARCHIVO_ESPECIFICACIONES_EXCEL)
-    df = pd.read_excel(ruta_BasedeDatos, index_col=0)
-    df = df.drop(columns=['FILTRADO'])
+    df=baseDeDatos_dataFrame()
     refs = input("Inserte la lista de referencias a buscar (separadas por espacio):\n").split(" ")
 
     # Llama a las funciones definidas para manejar el archivo SP y llenar el encabezado de la oferta, y para crear el CSV de cotización

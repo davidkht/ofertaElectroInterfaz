@@ -1,8 +1,19 @@
 import tkinter as tk
 from tkinter import ttk
 from tkinter import filedialog, messagebox
+from PIL import Image, ImageTk
 import sp
+import os
 import pandas as pd
+
+carpetas={
+    'PHY':r'COTIZACIONES\PHYWE',
+    'ELECTRO':r'COTIZACIONES\ELECTRO',
+    '3B':r'COTIZACIONES\3B',
+    'LN':r'COTIZACIONES\LUCAS NULLE',
+    'TER':r'COTIZACIONES\TERCEROS',
+    'EU':r'COTIZACIONES\EUROMEX'
+}
 
 def on_validate(P):
     # P es el valor propuesto para el texto del Entry: acepta si es vacío (lo que permite borrar) o si es numérico
@@ -19,15 +30,16 @@ def browse_file():
 
 def move_to_selected():
     selected = ref_listbox.curselection()
-    for i in selected:
-        selected_listbox.insert(tk.END, ref_listbox.get(i))
-        ref_listbox.delete(i)
+    for i in selected[::-1]:  # Revertir para manejar múltiples selecciones correctamente
+        item = ref_listbox.get(i)
+        selected_listbox.insert(tk.END, item)
+        # No eliminar el ítem de ref_listbox para cumplir con el reque
 
 def move_to_references():
     selected = selected_listbox.curselection()
-    for i in selected:
-        ref_listbox.insert(tk.END, selected_listbox.get(i))
+    for i in selected[::-1]:  # Revertir para manejar múltiples selecciones correctamente
         selected_listbox.delete(i)
+
 def on_combobox_change(event,combobox_var,values):
     # Obtiene el texto actual del combobox
     current_text = combobox_var.get()
@@ -49,12 +61,213 @@ def find_closest_match(text, values_list):
             return value
     return None
 
+def actualizar_referencias_por_seleccion(event):
+    seleccion = marca.get()  # Obtiene el valor actual seleccionado en la Combobox
+    global lista_completa_referencias  # Declara que se modificará la variable global
+    lista_completa_referencias = list(sp.nombres_de_basedeDatos(seleccion))
+    actualizar_ref_listbox()  # Actualiza la listbox con las referencias correspondientes
+
+def extraer_informacion():
+    datos = {
+        "Comercial": controlLabel.get(),
+        "Imprevistos": improvistosVariable.get(),
+        "Estampillas": estampillasVariable.get(),
+        "Institucion": institucionVariable.get(),
+        "Trimestre": combovar.get(),
+        "Ciudad": comboovar.get(),
+        "Carpeta": nombreCarpetaFinalVariable.get(),
+        "Tipo": radio_values["Tipo"].get(),
+        "Requerimiento": radio_values["Requerimiento"].get(),
+        "Canal": radio_values["Canal"].get(),
+        "Presupuesto": presupuestoVar.get(),
+        "Consecutivo": consecutivo,
+        "Profesionales": num_pro_var.get(),
+        "Dias": num_dias_var.get()
+    }
+    return datos
+
+def preparar_valor(valor):
+    """
+    Convierte NaN a cadena vacía y mantiene el resto de los valores.
+    """
+    if pd.isna(valor):
+        return ""
+    else:
+        return valor
+    
+def ajustar_altura_treeview(treeview, min_height=15, max_height=30):
+    """Ajusta la altura del TreeView basado en el número de ítems, con un mínimo y un máximo."""
+    num_items = len(treeview.get_children())
+    new_height = min(max(num_items, min_height), max_height)
+    treeview.config(height=new_height)
+
+def manejar_advertencias():
+    if nombreCarpetaFinalVariable.get() == '':
+        messagebox.showerror("Error","La carpeta debe tener un nombre no-vacio.")
+    elif selected_listbox.size()==0:
+        respuesta=messagebox.askyesno("Advertencia","No hay referencias seleccionadas en la lista. \n¿Continuar?")
+        if respuesta:
+            respuestass=messagebox.askokcancel("Creación de Solicitud",f"""
+                                        Se creara una solicitud con el nombre:\n
+                                        {nombreCarpetaFinalVariable.get()}\n
+                                        Presione 'Ok' para continuar, o 'Cancelar'\n
+                                        para corregir alguna información""")
+            if respuestass:
+                crear_SP()
+    else:
+        respuestass=messagebox.askokcancel("Creación de Solicitud",f"""
+                                        Se creara una solicitud con el nombre:\n
+                                        {nombreCarpetaFinalVariable.get()}\n
+                                        Presione 'Aceptar' para continuar, o 'Cancelar' para corregir alguna información""")
+        if respuestass:
+            crear_SP()
+
+def crear_SP():
+    datos=extraer_informacion()
+    nombre_carpeta=datos['Carpeta']
+    carpeta_mitad=carpetas[carpetaVariable.get()]
+    ventana_tabla = tk.Toplevel()
+    ventana_tabla.title(nombre_carpeta)
+    ventana_tabla.iconbitmap(os.path.join(script_directory,"imagen.ico"))
+    ventana_tabla.configure(background=colordefondo)
+    # ventana_tabla.geometry("400x250")
+    frameIzquierdo=ttk.Frame(ventana_tabla,style='Custom.TFrame')
+    frameIzquierdo.grid(row=0,column=0,padx=10,pady=10,sticky='nsew')
+    frameDerecho=ttk.Frame(ventana_tabla,style='Custom.TFrame')
+    frameDerecho.grid(row=0,column=1,padx=(10,20))
+
+    referencias=sp.extraer_referencias_de_base_de_datos(referencias_seleccionadas())
+    pdfTrue=sp.crear_carpeta_y_archivos(nombre_carpeta,variableControl.get(),carpeta_mitad)
+
+    if pdfTrue:
+        label = ttk.Label(frameDerecho, text="Carpeta creada exitósamente",style="Bold.TLabel")
+        label.grid(row=0, column=0,pady=20)
+    else:
+        label = ttk.Label(frameDerecho, text="Carpeta creada sin FSC\nni información de comercial",style="Bold.TLabel")
+        label.grid(row=0, column=0,pady=20)
+
+    labelInfo=ttk.Label(frameDerecho, text="Porfavor confirme cantidades y guardelas.",style="Large.TLabel")
+    labelInfo.grid(row=1, column=0)
+    labelInfo2=ttk.Label(frameDerecho, text="Finalice con el botón 'Electro'",style="Large.TLabel")
+    labelInfo2.grid(row=2, column=0,pady=(0,30))
+
+
+    tree=ttk.Treeview(frameIzquierdo)
+    tree.grid(row=0,column=0,sticky='nsew')
+    for i in tree.get_children():
+        tree.delete()
+    
+    columnas_a_mostrar=['DESCRIPCION','CANTIDAD','MONEDA','PRECIO']
+    columnas_mostrar_treeview = ['REFERENCIA']+columnas_a_mostrar
+    # Configurar las columnas en el Treeview
+    tree['columns'] = columnas_mostrar_treeview
+
+    # Ocultar la columna de árbol (tree) para no tener una columna vacía al inicio
+    tree['show'] = 'headings'  # Esto hace que solo se muestren las columnas definidas, sin la columna de árbol
+    
+    # Configurar las columnas en el Treeview
+    for columna in columnas_mostrar_treeview:
+        tree.heading(columna, text=columna)
+        tree.column(columna, anchor=tk.CENTER)
+
+    # Insertar los datos del DataFrame en el Treeview, incluido el índice
+    for indice, fila in referencias.iterrows():
+        valores = [indice] + [preparar_valor(fila[col]) for col in columnas_a_mostrar]
+        tree.insert("", tk.END, values=valores)
+
+    # Configurar las cabeceras y el ancho de las columnas
+    tree.column('REFERENCIA', width=80)
+    tree.column('DESCRIPCION', width=500)
+    tree.column('CANTIDAD', width=75)
+    tree.column('MONEDA',  width=60)
+    tree.column('PRECIO',  width=80)
+
+    def on_double_click(event):
+        """Manejador para el evento de doble clic en una celda de 'CANTIDADES'."""
+        item = tree.selection()[0]  # Obtener el ítem seleccionado
+        column = tree.identify_column(event.x)  # Identificar la columna clickeada
+
+        # Si se clickea la columna de 'CANTIDADES', permitir editar
+        if tree.heading(column)['text'] == 'CANTIDAD':
+            entry_popup(item, column)
+    def entry_popup(item, column):
+        """Crea un Entry para editar el valor de la celda."""
+        # Crear y posicionar el Entry widget
+        x, y, width, height = tree.bbox(item, column)
+        entry = tk.Entry(tree, width=width,validate='key',validatecommand=vcmd)
+        entry.place(x=x, y=y, width=width, height=height)
+        
+        # Función para reemplazar el valor de la celda al presionar Enter
+        def save_edit(event):
+            tree.set(item, column=tree.heading(column)['text'], value=entry.get())
+            entry.destroy()  # Eliminar el Entry después de guardar el valor
+        
+        entry.bind("<Return>", save_edit)
+        entry.focus()
+    def guardar_cantidades():
+        cantidades = []
+        for item in tree.get_children():
+            # Asumiendo que 'CANTIDAD' es la tercera columna, puedes ajustar el índice [2] según sea necesario
+            cantidad = tree.item(item, 'values')[2] 
+            cantidades.append(cantidad)
+        return cantidades
+    def click_cantidades():
+        global cantidades 
+        try:
+            if selected_listbox.size()==0:
+                cantidades=True
+                messagebox.showinfo("Información","No hay elementos. Presione el botón 'ELECTRO'",parent=ventana_tabla)
+            else:
+                cantidades=guardar_cantidades()
+                messagebox.showinfo("Información","Cantidades guardadas",parent=ventana_tabla)
+        except Exception as e:
+            messagebox.showerror("Error","ERROR",parent=ventana_tabla)
+    
+    def click_final():    
+        try:
+            if cantidades and all(cantidad.strip() for cantidad in cantidades):
+                try:
+                    sp.manejar_SP(datos,referencias,cantidades,carpeta_mitad)
+                    sp.crear_csv_cot(os.path.join(script_directory,carpeta_mitad,nombre_carpeta))
+                    messagebox.showinfo("Éxito","Solicitud creada exitósamente\nPresione Aceptar para salir.",parent=ventana_tabla)
+                    ventana_tabla.destroy()
+                except Exception as e:
+                    messagebox.showerror("Error",str(Exception),parent=ventana_tabla)
+            else:
+                messagebox.showwarning("Advertencia","No se olvide de GUARDAR las cantidades!",parent=ventana_tabla)
+        except NameError:
+            messagebox.showwarning("Advertencia","No se olvide de guardar las cantidades!",parent=ventana_tabla)
+
+
+    tree.bind("<Double-1>", on_double_click)
+    ajustar_altura_treeview(tree)
+    boton_guardar=ttk.Button(frameDerecho,text='Guardar Cantidades',command=click_cantidades,style='Custom.TButton')
+    boton_guardar.grid(row=3,column=0,sticky='ew',padx=20)
+
+    botonFinal=ttk.Button(frameDerecho,image=mi_imagen,command=click_final,style='Custom.TButton')
+    botonFinal.grid(row=5,column=0, sticky='s',pady=(50,15))
+
+def referencias_seleccionadas():
+    # Obteniendo el número total de elementos en el listbox
+    total_elementos = selected_listbox.size()    
+    # Extrayendo todos los elementos desde el primero (0) hasta el último
+    elementos = selected_listbox.get(0, total_elementos)
+    referencias= [elemento.split(" - ")[0] for elemento in elementos]
+    return referencias
+
+
+
+script_actual = os.path.realpath(__file__)  # Obtiene la ruta absoluta del script en ejecución
+script_directory = os.path.dirname(script_actual)  # Obtiene el directorio donde se encuentra el script
+
 root = tk.Tk()
 root.title("Crear Oferta")
-root.geometry("1460x400")
+root.geometry("1360x400")
 root.resizable(False,False)
-root.iconbitmap(r"C:\Users\K\Documents\Proyectos\ofertaElectroInterfaz\imagen.ico")
-
+root.iconbitmap(os.path.join(script_directory,"imagen.ico"))
+imagen_ico = Image.open(os.path.join(script_directory,"imagen.ico"))
+mi_imagen=imagen_ico.resize((48,48))
+mi_imagen = ImageTk.PhotoImage(mi_imagen)
 
 colordefondo='#2b394a'
 foregroundvariable='grey85'
@@ -70,10 +283,10 @@ style.configure('Custom.TFrame', foreground=foregroundvariable,
 style.configure('Custom.TRadiobutton', font=('Arial', 14), foreground=foregroundvariable,
                 background=colordefondo)
 
-style.configure("Bold.TLabel", font=("Arial", 18,'bold'), foreground=foregroundvariable,
+style.configure("Bold.TLabel", font=("Arial", 17,'bold'), foreground=foregroundvariable,
                 background=colordefondo)
 
-style.configure("dis.TLabel", font=("Arial", 18,'bold'), foreground='grey50',
+style.configure("dis.TLabel", font=("Arial", 18), foreground='grey50',
                 background=colordefondo)
 
 style.configure('Custom.TButton', font=('Arial', 13,'bold'), 
@@ -122,7 +335,7 @@ commercial_label.grid(row=3, column=0, columnspan=2, sticky="w",pady=(0, 10))
 # "Selecciona FSC" label and input
 variableControl = tk.StringVar()
 fsc=ttk.Label(left_frame, text="Selecciona FSC",style="Bold.TLabel")
-fsc.grid(row=1, column=0, sticky="ew")
+fsc.grid(row=1, column=0, sticky="ew",pady=(0, 10))
 
 
 fsc_entry = ttk.Entry(left_frame,textvariable=variableControl , state='readonly',style='Custom.TEntry')
@@ -141,11 +354,11 @@ examine_button.grid(row=1, column=1, sticky='ew',pady=(0, 10))
 #########################################################
 
 
-valores_para_listas=[['Q3-2024','Q4-2024','Q1-2025','Q2-2025','Q3-2025','Q4-2025'],
+valores_para_listas=[['Q2-2024','Q3-2024','Q4-2024','Q1-2025','Q2-2025','Q3-2025','Q4-2025'],
                      sp.gastos_de_viaje()]
 vcmd = (root.register(on_validate), '%P')
 label = ["Improvistos:", "Estampillas:","Institución", "Trimestre Esperado:", 
-          "Ciudad:"]
+          "Ciudad:","Presupuesto: "]
 
 improvistosVariable=tk.StringVar()
 improvistos=ttk.Label(left_frame, text=label[0],style="Large.TLabel")
@@ -161,10 +374,17 @@ institucion.grid(row=6, column=0, sticky="w",pady=(0, 10))
 
 
 trimistre=ttk.Label(left_frame, text=label[3],style="Large.TLabel")
-trimistre.grid(row=7, column=0, sticky="w",pady=(0, 10))
+trimistre.grid(row=8, column=0, sticky="w",pady=(0, 10))
 
 ciudad=ttk.Label(left_frame, text=label[4],style="Large.TLabel")
-ciudad.grid(row=8, column=0, sticky="w",pady=(0, 10))
+ciudad.grid(row=9, column=0, sticky="w",pady=(0, 10))
+
+presupuestoVar=tk.StringVar()
+presupuestoL=ttk.Label(left_frame, text=label[5],style="Large.TLabel")
+presupuestoL.grid(row=7, column=0, sticky="w",pady=(0, 10))
+presupuestoEntry=ttk.Entry(left_frame,validate='key',validatecommand=vcmd,
+                           style='Custom.TEntry',textvariable=presupuestoVar)
+presupuestoEntry.grid(row=7, column=1, sticky="ew", pady=(0, 10))
 
 improvistosEntry=ttk.Entry(left_frame,validate='key',validatecommand=vcmd,
                            style='Custom.TEntry',textvariable=improvistosVariable)
@@ -181,9 +401,9 @@ combovar=tk.StringVar()
 comboovar=tk.StringVar()
 
 combobox = ttk.Combobox(left_frame,values=valores_para_listas[0],textvariable=combovar)
-combobox.grid(row=7, column=1, sticky="ew", pady=(0, 10))
+combobox.grid(row=8, column=1, sticky="ew", pady=(0, 10))
 comboobox = ttk.Combobox(left_frame,values=valores_para_listas[1],textvariable=comboovar)
-comboobox.grid(row=8, column=1, sticky="ew", pady=(0, 10))
+comboobox.grid(row=9, column=1, sticky="ew", pady=(0, 10))
 
 combobox.bind('<FocusOut>', 
               lambda event, a=combovar,b=valores_para_listas[0]:on_combobox_change(event,a,b))
@@ -215,14 +435,14 @@ top_frame.grid_columnconfigure(1, weight=1)
 top_frame.grid_rowconfigure(1, weight=1)
 top_frame.grid_rowconfigure(0, weight=1)
 
-carpetasPosibles=['PHY','TER','3B','ELECTRO','LN','EUR']
+carpetasPosibles=['PHY','TER','3B','ELECTRO','LN','EU']
 carpetaVariable=tk.StringVar()
 nombreCarpeta=ttk.Label(top_frame,text="Carpeta",style="Bold.TLabel")
 nombreCarpeta.grid(row=0, column=2,sticky='w',pady=(0,10))
 carpeta=ttk.Combobox(top_frame,style='Custom.TCombobox',values=carpetasPosibles,
                    textvariable=carpetaVariable)
 carpeta.grid(row=0,column=3,padx=(30,0),pady=(0,10),sticky='w')
-
+carpeta.set(carpetasPosibles[3])
 carpeta.bind('<FocusOut>', 
               lambda event, a=carpetaVariable,b=carpetasPosibles:on_combobox_change(event,a,b))
 carpeta.bind('<Return>', 
@@ -243,11 +463,12 @@ marca.bind('<FocusOut>',
               lambda event, a=marcavariable,b=marcaslista:on_combobox_change(event,a,b))
 marca.bind('<Return>', 
               lambda event, a=marcavariable,b=marcaslista:on_combobox_change(event,a,b))
+marca.bind('<<ComboboxSelected>>', actualizar_referencias_por_seleccion)
 
-
-search_entry = ttk.Entry(top_frame,style='Custom.TEntry')
+searchVar=tk.StringVar()
+search_entry = ttk.Entry(top_frame,style='Custom.TEntry',textvariable=searchVar)
 search_entry.grid(row=1, column=1, columnspan=3, padx=(30,0), pady=(0,10),sticky='ew')
-
+lista_completa_referencias = list(sp.nombres_de_basedeDatos('PHYWE'))
 ##########################
 # Listboxes with scrollbar
 ##########################
@@ -297,21 +518,25 @@ move_to_selected_button = ttk.Button(btn_frame, text=" → ",
                                      style="Custom.TButton")
 move_to_selected_button.grid(row=2,column=0,sticky='ew')
 
-move_to_references_button = ttk.Button(btn_frame, text=" ← ",
+move_to_references_button = ttk.Button(btn_frame, text=" X ",
                                        command=move_to_references, width=5,
                                        style="Custom.TButton")
 
 move_to_references_button.grid(row=4,column=0,sticky='ew')
 
-def agregar_nombres_a_listbox(tupla_nombres,listbox):
-    for indice, nombre in tupla_nombres:
+def actualizar_ref_listbox(search_text=''):
+    ref_listbox.delete(0, tk.END)  # Limpia la listbox antes de actualizarla
+    for indice, nombre in lista_completa_referencias:
+        if search_text.lower() in str(nombre).lower() or search_text.lower() in str(indice).lower():
+            ref_listbox.insert(tk.END, f"{indice} - {nombre}")
 
-        listbox.insert(tk.END, str(indice)+" - "+str(nombre))
+def on_search_entry_change(*args):
+    search_text = searchVar.get()
+    actualizar_ref_listbox(search_text)
 
+actualizar_ref_listbox()
 
-agregar_nombres_a_listbox(sp.nombres_de_basedeDatos().items(),ref_listbox)
-
-
+searchVar.trace_add("write", on_search_entry_change)
 #########################
 #RADIO BUTTONS FOR OFFER 
 #########################
@@ -395,16 +620,28 @@ nombreCarpetaFinalVariable=tk.StringVar()
 nombreCarpetaFinal=ttk.Entry(thirdframe,textvariable=nombreCarpetaFinalVariable)
 nombreCarpetaFinal.grid(row=1,column=0,sticky='ew',pady=(0, 20))
 
-dobutton=ttk.Button(thirdframe, text="Crear SP",command=browse_file,style="Custom.TButton")
+dobutton=ttk.Button(thirdframe, text="Crear SP",command=manejar_advertencias,style="Custom.TButton")
 dobutton.grid(row=2, column=0, sticky='ew',pady=(0, 10))
 
+numero_consecutivo=tk.StringVar()
 def actualizar_entry1(*args):
     # Concatenar los valores de Entry2, Entry3, Combobox1 y variable_uno
+    global consecutivo
     prefijo = carpetaVariable.get()
-    nombredelainstitucion=institucionVariable.get()+ " "
+    nombredelainstitucion=institucionVariable.get()
     comercial=variableControl.get().split('/')[-1][:-4]
-    consecutivo=prefijo+" "+str(sp.obtener_nuevo_consecutivo(prefijo))+"-24 "
-    valor_actualizado = consecutivo+nombredelainstitucion+comercial
+    numeroCons=str(sp.obtener_nuevo_consecutivo(prefijo,carpetas[prefijo]))
+    numero_consecutivo.set(numeroCons)
+    consecutivo=prefijo+" "+numero_consecutivo.get()+"-24"
+    if nombredelainstitucion== '':
+        if comercial == '':
+            valor_actualizado=consecutivo
+        else:
+            valor_actualizado=consecutivo+' '+comercial
+    elif comercial== '':
+        valor_actualizado=consecutivo+' '+nombredelainstitucion
+    else:
+        valor_actualizado = consecutivo+' '+nombredelainstitucion+' '+comercial
     # Actualizar el valor de Entry1
     nombreCarpetaFinalVariable.set(valor_actualizado)
 
@@ -422,16 +659,18 @@ switch_button=ttk.Checkbutton(firstframe,style="Switch.TCheckbutton", text="",
                               onvalue=True, offvalue=False, command=on_switch)
 switch_button.grid(row=0,column=1,padx=10,pady=(0, 10))
 
+num_pro_var=tk.StringVar()
 num_pro=ttk.Label(secondframe,text='Número de profesionales: ',style="Large.TLabel")
 num_pro.grid(row=0,column=0,sticky='ew',pady=(0,10))
 
+num_dias_var=tk.StringVar()
 num_dias=ttk.Label(secondframe,text='Días: ',style="Large.TLabel")
 num_dias.grid(row=1,column=0,sticky='ew',pady=(0,10))
 
-profesionales=ttk.Entry(secondframe,validate='key',validatecommand=vcmd)
+profesionales=ttk.Entry(secondframe,validate='key',validatecommand=vcmd,textvariable=num_pro_var)
 profesionales.grid(row=0,column=1,sticky='ew',pady=(0,10))
 
-dias=ttk.Entry(secondframe,validate='key',validatecommand=vcmd)
+dias=ttk.Entry(secondframe,validate='key',validatecommand=vcmd,textvariable=num_dias_var)
 dias.grid(row=1,column=1,sticky='ew',pady=(0,10))
 
 

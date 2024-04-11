@@ -106,8 +106,8 @@ def manejar_SP(dataUI, df_SP, cantidades,marcaDestino):
     wb_sp = openpyxl.load_workbook(rutaSP)
     hoja_SP = wb_sp.worksheets[0]
 
-    estampillas=dataUI['Estampillas']
-    imprevistos=dataUI['Imprevistos']
+    estampillas=float(dataUI['Estampillas'])
+    imprevistos=float(dataUI['Imprevistos'])
     ciudad = dataUI['Ciudad']
     institucion=dataUI['Institucion']    
     consecutivo= dataUI['Consecutivo']
@@ -119,6 +119,7 @@ def manejar_SP(dataUI, df_SP, cantidades,marcaDestino):
     hoja_SP['E15'] = dataUI['Trimestre']
     hoja_SP['E16'] = dataUI['Presupuesto']
     hoja_SP['E6'] = institucion
+    hoja_SP['E17']= dataUI['Moneda']
 
 
     if comercial in ['JIMMY ORTIZ', 'JEIMY CADENA']:
@@ -134,13 +135,13 @@ def manejar_SP(dataUI, df_SP, cantidades,marcaDestino):
             hoja_SP.cell(row=r_idx, column=c_idx, value=value)  # Inserts each value into the corresponding cell.
 
     for j, valor in enumerate(cantidades, 20):
-        hoja_SP.cell(row=j, column=9, value=valor)
+        hoja_SP.cell(row=j, column=9, value=int(valor))
     
     #Ahora llena la segunda hoja del excel
     hoja_SP_gastos=wb_sp.worksheets[1]
 
-    hoja_SP_gastos['D6']=dataUI['Dias']
-    hoja_SP_gastos['D7']=dataUI['Profesionales']
+    hoja_SP_gastos['D6']=int(dataUI['Dias'])
+    hoja_SP_gastos['D7']=int(dataUI['Profesionales'])
 
 
     wb_sp.save(rutaSP)  # Saves the changes made in the Excel file.
@@ -180,7 +181,6 @@ def manejar_SP(dataUI, df_SP, cantidades,marcaDestino):
     img = Image(os.path.join(rutaCarpeta, 'second.png'))
     hoja_destino.add_image(img, 'B1')
     wb_OF.save(rutaOF)
-
 
 # Función para crear un archivo CSV de cotización a partir de un archivo SP
 def crear_csv_cot(rutaCarpeta):

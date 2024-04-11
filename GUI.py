@@ -12,7 +12,8 @@ carpetas={
     '3B':r'COTIZACIONES\3B',
     'LN':r'COTIZACIONES\LUCAS NULLE',
     'TER':r'COTIZACIONES\TERCEROS',
-    'EU':r'COTIZACIONES\EUROMEX'
+    'EU':r'COTIZACIONES\EUROMEX',
+    'PT': r'COTIZACIONES\PT'
 }
 
 def on_validate(P):
@@ -82,7 +83,8 @@ def extraer_informacion():
         "Presupuesto": presupuestoVar.get(),
         "Consecutivo": consecutivo,
         "Profesionales": num_pro_var.get(),
-        "Dias": num_dias_var.get()
+        "Dias": num_dias_var.get(),
+        "Moneda":monedacomboVar.get()
     }
     return datos
 
@@ -358,7 +360,7 @@ valores_para_listas=[['Q2-2024','Q3-2024','Q4-2024','Q1-2025','Q2-2025','Q3-2025
                      sp.gastos_de_viaje()]
 vcmd = (root.register(on_validate), '%P')
 label = ["Improvistos:", "Estampillas:","Institución", "Trimestre Esperado:", 
-          "Ciudad:","Presupuesto: "]
+          "Ciudad:","Presupuesto: ","Moneda Requerida:"]
 
 improvistosVariable=tk.StringVar()
 improvistos=ttk.Label(left_frame, text=label[0],style="Large.TLabel")
@@ -414,6 +416,17 @@ comboobox.bind('<FocusOut>',
 comboobox.bind('<Return>', 
               lambda event, a=comboovar,b=valores_para_listas[1]:on_combobox_change(event,a,b))
 
+monedaLabel=ttk.Label(left_frame, text=label[6],style="Large.TLabel")
+monedaLabel.grid(row=10, column=0, sticky="w",pady=(0, 10))
+monedacomboVar=tk.StringVar()
+valores_moneda=['COP','USD','EUR']
+monedacombo=ttk.Combobox(left_frame,values=valores_moneda,textvariable=monedacomboVar)
+monedacombo.grid(row=10, column=1, sticky="ew", pady=(0, 10))
+
+monedacombo.bind('<FocusOut>', 
+              lambda event, a=monedacomboVar,b=valores_moneda:on_combobox_change(event,a,b))
+monedacombo.bind('<Return>', 
+              lambda event, a=monedacomboVar,b=valores_moneda:on_combobox_change(event,a,b))
 
 #########################################################
 #SECCION REFERENCIAS Y MARCA
@@ -435,7 +448,7 @@ top_frame.grid_columnconfigure(1, weight=1)
 top_frame.grid_rowconfigure(1, weight=1)
 top_frame.grid_rowconfigure(0, weight=1)
 
-carpetasPosibles=['PHY','TER','3B','ELECTRO','LN','EU']
+carpetasPosibles=['PHY','TER','3B','ELECTRO','LN','EU','PT']
 carpetaVariable=tk.StringVar()
 nombreCarpeta=ttk.Label(top_frame,text="Carpeta",style="Bold.TLabel")
 nombreCarpeta.grid(row=0, column=2,sticky='w',pady=(0,10))

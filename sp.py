@@ -1,6 +1,7 @@
 import os  # Importa el módulo os para interactuar con el sistema operativo
 import re
 import shutil
+import sys
 import pandas as pd  # Importa pandas para la manipulación de datos
 import openpyxl  # Importa openpyxl para trabajar con archivos Excel
 from openpyxl.utils.dataframe import dataframe_to_rows  # Función para convertir un DataFrame de pandas en filas para Excel
@@ -10,8 +11,19 @@ from openpyxl.drawing.image import Image  # Importa Image para añadir imágenes
 ARCHIVO_ESPECIFICACIONES_EXCEL = 'Especificaciones_SP2024.xlsx'  # Define el nombre del archivo de especificaciones
 DEPENDENCIAS_BD_Y_PLANTILLAS='bdpl'
 # Bloque de código para definir rutas de archivos y directorios, y ejecutar las funciones definidas anteriormente
-script_actual = os.path.realpath(__file__)  # Obtiene la ruta absoluta del script en ejecución
-script_directory = os.path.dirname(script_actual)  # Obtiene el directorio donde se encuentra el script
+
+
+
+def get_resource_path():
+    """ Retorna la ruta absoluta al recurso, para uso en desarrollo o en el ejecutable empaquetado. """
+    if getattr(sys, 'frozen', False):
+        # Si el programa ha sido empaquetado, el directorio base es el que PyInstaller proporciona
+        base_path = sys._MEIPASS
+    else:
+        # Si estamos en desarrollo, utiliza la ubicación del script
+        base_path = os.path.dirname(os.path.realpath(__file__))
+
+    return base_path
 
 def crear_carpeta_y_archivos(nueva_carpeta,rutaPdf,rutaLinea):
     
@@ -106,8 +118,8 @@ def manejar_SP(dataUI, df_SP, cantidades,marcaDestino):
     wb_sp = openpyxl.load_workbook(rutaSP)
     hoja_SP = wb_sp.worksheets[0]
 
-    estampillas=float(dataUI['Estampillas'])
-    imprevistos=float(dataUI['Imprevistos'])
+    estampillas=float(dataUI['Estampillas'])/100
+    imprevistos=float(dataUI['Imprevistos'])/100
     ciudad = dataUI['Ciudad']
     institucion=dataUI['Institucion']    
     consecutivo= dataUI['Consecutivo']
@@ -134,14 +146,20 @@ def manejar_SP(dataUI, df_SP, cantidades,marcaDestino):
         for c_idx, value in enumerate(row, 1):
             hoja_SP.cell(row=r_idx, column=c_idx, value=value)  # Inserts each value into the corresponding cell.
 
-    for j, valor in enumerate(cantidades, 20):
-        hoja_SP.cell(row=j, column=9, value=int(valor))
+    if type(cantidades)==type(list):
+        for j, valor in enumerate(cantidades, 20):
+            hoja_SP.cell(row=j, column=9, value=int(valor))
+
+
     
     #Ahora llena la segunda hoja del excel
     hoja_SP_gastos=wb_sp.worksheets[1]
 
-    hoja_SP_gastos['D6']=int(dataUI['Dias'])
-    hoja_SP_gastos['D7']=int(dataUI['Profesionales'])
+    if dataUI['Dias']=='' or dataUI['Profesionales']=='':
+        pass
+    else:
+        hoja_SP_gastos['D6']=int(dataUI['Dias'])
+        hoja_SP_gastos['D7']=int(dataUI['Profesionales'])
 
 
     wb_sp.save(rutaSP)  # Saves the changes made in the Excel file.
@@ -237,3 +255,4 @@ def obtener_nuevo_consecutivo(prefijo,marcaDestino):
     return consecutivo_maximo + 1
 
 
+script_directory = get_resource_path()

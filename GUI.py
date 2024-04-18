@@ -4,17 +4,29 @@ from tkinter import filedialog, messagebox
 from PIL import Image, ImageTk
 import sp
 import os
+import sys
 import pandas as pd
 
 carpetas={
-    'PHY':r'COTIZACIONES\PHYWE',
-    'ELECTRO':r'COTIZACIONES\ELECTRO',
-    '3B':r'COTIZACIONES\3B',
-    'LN':r'COTIZACIONES\LUCAS NULLE',
-    'TER':r'COTIZACIONES\TERCEROS',
-    'EU':r'COTIZACIONES\EUROMEX',
-    'PT': r'COTIZACIONES\PT'
+    'PHY':'COTIZACIONES/PHYWE',
+    'ELECTRO':'COTIZACIONES/ELECTRO',
+    '3B':'COTIZACIONES/3B',
+    'LN':'COTIZACIONES/LUCAS NULLE',
+    'TER':'COTIZACIONES/TERCEROS',
+    'EU':'COTIZACIONES/EUROMEX',
+    'PT': 'COTIZACIONES/PT'
 }
+
+def get_resource_path():
+    """ Retorna la ruta absoluta al recurso, para uso en desarrollo o en el ejecutable empaquetado. """
+    if getattr(sys, 'frozen', False):
+        # Si el programa ha sido empaquetado, el directorio base es el que PyInstaller proporciona
+        base_path = sys._MEIPASS
+    else:
+        # Si estamos en desarrollo, utiliza la ubicación del script
+        base_path = os.path.dirname(os.path.realpath(__file__))
+
+    return base_path
 
 def on_validate(P):
     # P es el valor propuesto para el texto del Entry: acepta si es vacío (lo que permite borrar) o si es numérico
@@ -126,6 +138,7 @@ def manejar_advertencias():
 
 def crear_SP():
     datos=extraer_informacion()
+ 
     nombre_carpeta=datos['Carpeta']
     carpeta_mitad=carpetas[carpetaVariable.get()]
     ventana_tabla = tk.Toplevel()
@@ -137,6 +150,7 @@ def crear_SP():
     frameIzquierdo.grid(row=0,column=0,padx=10,pady=10,sticky='nsew')
     frameDerecho=ttk.Frame(ventana_tabla,style='Custom.TFrame')
     frameDerecho.grid(row=0,column=1,padx=(10,20))
+ 
 
     referencias=sp.extraer_referencias_de_base_de_datos(referencias_seleccionadas())
     pdfTrue=sp.crear_carpeta_y_archivos(nombre_carpeta,variableControl.get(),carpeta_mitad)
@@ -159,6 +173,7 @@ def crear_SP():
     for i in tree.get_children():
         tree.delete()
     
+
     columnas_a_mostrar=['DESCRIPCION','CANTIDAD','MONEDA','PRECIO']
     columnas_mostrar_treeview = ['REFERENCIA']+columnas_a_mostrar
     # Configurar las columnas en el Treeview
@@ -239,6 +254,15 @@ def crear_SP():
                 messagebox.showwarning("Advertencia","No se olvide de GUARDAR las cantidades!",parent=ventana_tabla)
         except NameError:
             messagebox.showwarning("Advertencia","No se olvide de guardar las cantidades!",parent=ventana_tabla)
+        except TypeError:
+            messagebox.showwarning("Advertencia","La solicitud se guardará sin ítems",parent=ventana_tabla)
+            try:
+                sp.manejar_SP(datos,referencias,cantidades,carpeta_mitad)
+                sp.crear_csv_cot(os.path.join(script_directory,carpeta_mitad,nombre_carpeta))
+                messagebox.showinfo("Éxito","Solicitud creada exitósamente\nPresione Aceptar para salir.",parent=ventana_tabla)
+                ventana_tabla.destroy()
+            except Exception as e:
+                messagebox.showerror("Error",str(Exception),parent=ventana_tabla)
 
 
     tree.bind("<Double-1>", on_double_click)
@@ -257,10 +281,7 @@ def referencias_seleccionadas():
     referencias= [elemento.split(" - ")[0] for elemento in elementos]
     return referencias
 
-
-
-script_actual = os.path.realpath(__file__)  # Obtiene la ruta absoluta del script en ejecución
-script_directory = os.path.dirname(script_actual)  # Obtiene el directorio donde se encuentra el script
+script_directory =get_resource_path()  # Obtiene el directorio donde se encuentra el script
 
 root = tk.Tk()
 root.title("Crear Oferta")
@@ -344,7 +365,6 @@ fsc_entry = ttk.Entry(left_frame,textvariable=variableControl , state='readonly'
 fsc_entry.grid(row=2, column=0, columnspan=2, sticky="ew", pady=(0, 10))
 
 controlLabel=tk.StringVar()
-controlLabel.set('')
 com_entry = ttk.Entry(left_frame,textvariable=controlLabel , state='readonly',style='Custom.TEntry')
 com_entry.grid(row=3, column=1, sticky="ew", pady=(0, 10))
 

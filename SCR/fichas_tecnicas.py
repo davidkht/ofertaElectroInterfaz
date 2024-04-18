@@ -6,7 +6,7 @@ print("----------------------------------------------")
 # Configure paths (adjust as needed)
 ruta_base = os.path.dirname(os.path.abspath(__file__))  # Path for the CSV file and SCRIPT. It dynamically finds the directory where the script is located.
 nombre_csv = "PHYWEQUOTE.csv"  # The name of the CSV file to be processed.
-ruta_fichas = "/mnt/g/Mi unidad/Fichas_Tecnicas_Phywe"  # Path to the folder containing the technical sheets in Spanish.
+ruta_fichas = "G:/Mi unidad/Fichas_Tecnicas_Phywe"  # Path to the folder containing the technical sheets in Spanish.
 ruta_destino = os.path.join(ruta_base, "FICHAS_TECNICAS")  # Destination path for the technical sheets, dynamically constructed.
 
 # Create the destination folder if it does not exist

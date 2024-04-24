@@ -170,8 +170,9 @@ def crear_SP():
 
     tree=ttk.Treeview(frameIzquierdo)
     tree.grid(row=0,column=0,sticky='nsew')
+
     for i in tree.get_children():
-        tree.delete()
+        tree.delete(i)
     
 
     columnas_a_mostrar=['DESCRIPCION','CANTIDAD','MONEDA','PRECIO']
@@ -674,7 +675,7 @@ def actualizar_entry1(*args):
     elif comercial== '':
         valor_actualizado=consecutivo+' '+nombredelainstitucion
     else:
-        valor_actualizado = consecutivo+' '+nombredelainstitucion+' '+comercial
+        valor_actualizado = consecutivo+' '+comercial+' '+nombredelainstitucion
     # Actualizar el valor de Entry1
     nombreCarpetaFinalVariable.set(valor_actualizado)
 

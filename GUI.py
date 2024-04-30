@@ -228,6 +228,7 @@ def crear_SP():
             # Asumiendo que 'CANTIDAD' es la tercera columna, puedes ajustar el índice [2] según sea necesario
             cantidad = tree.item(item, 'values')[2] 
             cantidades.append(cantidad)
+        
         return cantidades
     def click_cantidades():
         global cantidades 
@@ -237,6 +238,7 @@ def crear_SP():
                 messagebox.showinfo("Información","No hay elementos. Presione el botón 'ELECTRO'",parent=ventana_tabla)
             else:
                 cantidades=guardar_cantidades()
+                
                 messagebox.showinfo("Información","Cantidades guardadas",parent=ventana_tabla)
         except Exception as e:
             messagebox.showerror("Error","ERROR",parent=ventana_tabla)
@@ -244,13 +246,14 @@ def crear_SP():
     def click_final():    
         try:
             if cantidades and all(cantidad.strip() for cantidad in cantidades):
+                
                 try:
                     sp.manejar_SP(datos,referencias,cantidades,carpeta_mitad)
                     sp.crear_csv_cot(os.path.join(script_directory,carpeta_mitad,nombre_carpeta))
                     messagebox.showinfo("Éxito","Solicitud creada exitósamente\nPresione Aceptar para salir.",parent=ventana_tabla)
                     ventana_tabla.destroy()
                 except Exception as e:
-                    messagebox.showerror("Error",str(Exception),parent=ventana_tabla)
+                    messagebox.showerror("Error",str(e),parent=ventana_tabla)
             else:
                 messagebox.showwarning("Advertencia","No se olvide de GUARDAR las cantidades!",parent=ventana_tabla)
         except NameError:

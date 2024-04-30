@@ -64,7 +64,9 @@ def encontrar_pdf_y_extraer_nombre(archivo):
         'CR': 'CHRISTIAN ROMERO',
         'RB': 'ROCÍO BARÓN',
         'DC': 'DANIELA CRISTANCHO',
-        'AC': 'ANDRES CUESTAS'
+        'MB': 'MARIA MERCEDES BURGOS',
+        'CC': 'DIANA CORREA',
+        'LC': 'LUIS CAÑÓN'
     }
     
     archivo=archivo.split('/')[-1]
@@ -103,6 +105,7 @@ def manejar_SP(dataUI, df_SP, cantidades,marcaDestino):
     La única columna que queda por llenar es CANTIDADES, las cuales las pide al Usuario.
     Por último, llena la segunda hoja del excel SP con datos del usuario también
     """
+    
     nombre_carpeta=dataUI['Carpeta']
     rutaCarpeta=os.path.join(script_directory,marcaDestino,nombre_carpeta)
 
@@ -134,7 +137,7 @@ def manejar_SP(dataUI, df_SP, cantidades,marcaDestino):
     hoja_SP['E17']= dataUI['Moneda']
 
 
-    if comercial in ['JIMMY ORTIZ', 'JEIMY CADENA']:
+    if comercial in ['JIMMY ORTIZ', 'JEIMY CADENA','LUIS CAÑÓN', 'MARIA MERCEDES BURGOS']:
         hoja_SP['E8'] = comercial  # Updates cell E8 with the commercial name if it's Ortiz or Cadena.
     else:
         hoja_SP['E9'] = comercial
@@ -146,8 +149,12 @@ def manejar_SP(dataUI, df_SP, cantidades,marcaDestino):
         for c_idx, value in enumerate(row, 1):
             hoja_SP.cell(row=r_idx, column=c_idx, value=value)  # Inserts each value into the corresponding cell.
 
-    if type(cantidades)==type(list):
+    
+    if isinstance(cantidades, list):
+        print('ENtramos')
+
         for j, valor in enumerate(cantidades, 20):
+            print(valor)
             hoja_SP.cell(row=j, column=9, value=int(valor))
 
 

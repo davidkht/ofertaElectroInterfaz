@@ -12,8 +12,6 @@ ARCHIVO_ESPECIFICACIONES_EXCEL = 'Especificaciones_SP2024.xlsx'  # Define el nom
 DEPENDENCIAS_BD_Y_PLANTILLAS='bdpl'
 # Bloque de código para definir rutas de archivos y directorios, y ejecutar las funciones definidas anteriormente
 
-
-
 def get_resource_path():
     """ Retorna la ruta absoluta al recurso, para uso en desarrollo o en el ejecutable empaquetado. """
     if getattr(sys, 'frozen', False):
@@ -24,6 +22,8 @@ def get_resource_path():
         base_path = os.path.dirname(os.path.realpath(__file__))
 
     return base_path
+
+script_directory = get_resource_path()
 
 def crear_carpeta_y_archivos(nueva_carpeta,rutaPdf,rutaLinea):
     
@@ -42,8 +42,7 @@ def crear_carpeta_y_archivos(nueva_carpeta,rutaPdf,rutaLinea):
         origen = os.path.join(script_directory, DEPENDENCIAS_BD_Y_PLANTILLAS,plantilla)
         shutil.copy(origen, destino)
     # Copiar archivos adicionales
-    for archivo in ["second.py", "second.png","fichas_tecnicas.py"]:
-        shutil.copy(os.path.join(script_directory,"SCR", archivo), ruta_nueva_carpeta)
+    shutil.copy(os.path.join(script_directory,"SCR", "second.png"), ruta_nueva_carpeta)
 
     #Mover pdf a la carpeta
     if rutaPdf:
@@ -151,10 +150,8 @@ def manejar_SP(dataUI, df_SP, cantidades,marcaDestino):
 
     
     if isinstance(cantidades, list):
-        print('ENtramos')
 
         for j, valor in enumerate(cantidades, 20):
-            print(valor)
             hoja_SP.cell(row=j, column=9, value=int(valor))
 
 
@@ -206,6 +203,8 @@ def manejar_SP(dataUI, df_SP, cantidades,marcaDestino):
     img = Image(os.path.join(rutaCarpeta, 'second.png'))
     hoja_destino.add_image(img, 'B1')
     wb_OF.save(rutaOF)
+
+    os.remove(os.path.join(rutaCarpeta, 'second.png'))
 
 # Función para crear un archivo CSV de cotización a partir de un archivo SP
 def crear_csv_cot(rutaCarpeta):
@@ -262,4 +261,3 @@ def obtener_nuevo_consecutivo(prefijo,marcaDestino):
     return consecutivo_maximo + 1
 
 
-script_directory = get_resource_path()

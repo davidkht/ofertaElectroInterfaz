@@ -168,6 +168,7 @@ def manejar_SP(dataUI, df_SP, cantidades,marcaDestino):
 
     wb_sp.save(rutaSP)  # Saves the changes made in the Excel file.
 
+    #Ahora Manejar la Oferta
     wb_OF = openpyxl.load_workbook(rutaOF)  # Loads the Excel workbook.
     hoja_destino= wb_OF.worksheets[0]
 

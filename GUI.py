@@ -29,8 +29,15 @@ def get_resource_path():
     return base_path
 
 def on_validate(P):
-    # P es el valor propuesto para el texto del Entry: acepta si es vacío (lo que permite borrar) o si es numérico
-    return P == "" or P.isdigit()
+    if P == "":
+        return True  # Permite el valor vacío (para poder borrar)
+    if P == ".":  # Permite que se ingrese un solo punto decimal
+        return True
+    try:
+        float(P)  # Intenta convertir el valor propuesto a float
+        return True
+    except ValueError:
+        return False
 
 def browse_file():
     filename = filedialog.askopenfilename()
@@ -81,6 +88,8 @@ def actualizar_referencias_por_seleccion(event):
     actualizar_ref_listbox()  # Actualiza la listbox con las referencias correspondientes
 
 def extraer_informacion():
+
+
     datos = {
         "Comercial": controlLabel.get(),
         "Imprevistos": improvistosVariable.get(),
@@ -93,7 +102,7 @@ def extraer_informacion():
         "Requerimiento": radio_values["Requerimiento"].get(),
         "Canal": radio_values["Canal"].get(),
         "Presupuesto": presupuestoVar.get(),
-        "Consecutivo": consecutivo,
+        "Consecutivo": (lambda: consecutivo if 'consecutivo' in locals() else '')(),
         "Profesionales": num_pro_var.get(),
         "Dias": num_dias_var.get(),
         "Moneda":monedacomboVar.get()
@@ -144,8 +153,7 @@ def crear_SP():
     ventana_tabla = tk.Toplevel()
     ventana_tabla.title(nombre_carpeta)
     ventana_tabla.iconbitmap(os.path.join(script_directory,"imagen.ico"))
-    ventana_tabla.configure(background=colordefondo)
-    # ventana_tabla.geometry("400x250")
+
     frameIzquierdo=ttk.Frame(ventana_tabla,style='Custom.TFrame')
     frameIzquierdo.grid(row=0,column=0,padx=10,pady=10,sticky='nsew')
     frameDerecho=ttk.Frame(ventana_tabla,style='Custom.TFrame')
@@ -188,9 +196,31 @@ def crear_SP():
         tree.heading(columna, text=columna)
         tree.column(columna, anchor=tk.CENTER)
 
-    # Insertar los datos del DataFrame en el Treeview, incluido el índice
+    # Contador de ocurrencias de referencias
+    referencia_count = {}
+
     for indice, fila in referencias.iterrows():
-        valores = [indice] + [preparar_valor(fila[col]) for col in columnas_a_mostrar]
+        referencia = indice
+        descripcion = fila['DESCRIPCION']
+        referencia_completa = f"{referencia} - {descripcion}"
+        
+        # Contar ocurrencias de cada referencia
+        if referencia_completa not in referencia_count:
+            referencia_count[referencia_completa] = 0
+        else:
+            referencia_count[referencia_completa] += 1
+        
+        # Obtener la cantidad correcta de la lista de tuplas
+        cantidad = ''
+        occurrences = 0
+        for ref, qty in quantities:
+            if ref.startswith(referencia_completa):
+                if occurrences == referencia_count[referencia_completa]:
+                    cantidad = qty
+                    break
+                occurrences += 1
+        
+        valores = [referencia, descripcion, cantidad, fila['MONEDA'], fila['PRECIO']]
         tree.insert("", tk.END, values=valores)
 
     # Configurar las cabeceras y el ancho de las columnas
@@ -208,65 +238,75 @@ def crear_SP():
         # Si se clickea la columna de 'CANTIDADES', permitir editar
         if tree.heading(column)['text'] == 'CANTIDAD':
             entry_popup(item, column)
+
     def entry_popup(item, column):
-        """Crea un Entry para editar el valor de la celda."""
-        # Crear y posicionar el Entry widget
         x, y, width, height = tree.bbox(item, column)
-        entry = tk.Entry(tree, width=width,validate='key',validatecommand=vcmd)
+        entry = tk.Entry(tree, width=width)
         entry.place(x=x, y=y, width=width, height=height)
-        
-        # Función para reemplazar el valor de la celda al presionar Enter
+
         def save_edit(event):
-            tree.set(item, column=tree.heading(column)['text'], value=entry.get())
-            entry.destroy()  # Eliminar el Entry después de guardar el valor
+            value = entry.get()
+            if value.strip() and value.replace('.', '', 1).isdigit():  # Validate that the value is a number and not empty
+                tree.set(item, column=tree.heading(column)['text'], value=value)
+                entry.destroy()
+            else:
+                messagebox.showerror("Invalid input", "Please enter a valid number", parent=ventana_tabla)
         
         entry.bind("<Return>", save_edit)
         entry.focus()
+
     def guardar_cantidades():
         cantidades = []
         for item in tree.get_children():
-            # Asumiendo que 'CANTIDAD' es la tercera columna, puedes ajustar el índice [2] según sea necesario
-            cantidad = tree.item(item, 'values')[2] 
-            cantidades.append(cantidad)
-        
-        return cantidades
-    def click_cantidades():
-        global cantidades 
-        try:
-            if selected_listbox.size()==0:
-                cantidades=True
-                messagebox.showinfo("Información","No hay elementos. Presione el botón 'ELECTRO'",parent=ventana_tabla)
+            cantidad = tree.item(item, 'values')[2]
+            if cantidad.strip() and cantidad.replace('.', '', 1).isdigit():  # Validate the quantity is not empty and numeric
+                cantidades.append(cantidad)
             else:
-                cantidades=guardar_cantidades()
-                
-                messagebox.showinfo("Información","Cantidades guardadas",parent=ventana_tabla)
+                messagebox.showerror("Error", f"Cantidad inválida para la referencia {tree.item(item, 'values')[0]}")
+                return None
+        return cantidades
+
+    def click_cantidades():
+        global cantidades
+        try:
+            if selected_listbox.size() == 0:
+                cantidades = True
+                messagebox.showinfo("Información", "No hay elementos. Presione el botón 'ELECTRO'", parent=ventana_tabla)
+            else:
+                cantidades = guardar_cantidades()
+                if cantidades is not None:
+                    messagebox.showinfo("Información", "Cantidades guardadas", parent=ventana_tabla)
         except Exception as e:
-            messagebox.showerror("Error","ERROR",parent=ventana_tabla)
-    
-    def click_final():    
+            messagebox.showerror("Error", "ERROR", parent=ventana_tabla)
+
+    def click_final():
+        global cantidades    
         try:
             if cantidades and all(cantidad.strip() for cantidad in cantidades):
-                
                 try:
-                    sp.manejar_SP(datos,referencias,cantidades,carpeta_mitad)
-                    sp.crear_csv_cot(os.path.join(script_directory,carpeta_mitad,nombre_carpeta))
-                    messagebox.showinfo("Éxito","Solicitud creada exitósamente\nPresione Aceptar para salir.",parent=ventana_tabla)
+                    # Convertir cantidades a flotantes
+                    cantidades = [float(cantidad) for cantidad in cantidades if cantidad.strip()]  # Ensure no empty strings
+                    sp.manejar_SP(datos, referencias, cantidades, carpeta_mitad)
+                    sp.crear_csv_cot(os.path.join(script_directory, carpeta_mitad, nombre_carpeta))
+                    messagebox.showinfo("Éxito", "Solicitud creada exitósamente\nPresione Aceptar para salir.", parent=ventana_tabla)
                     ventana_tabla.destroy()
                 except Exception as e:
-                    messagebox.showerror("Error",str(e),parent=ventana_tabla)
+                    messagebox.showerror("Error", str(e), parent=ventana_tabla)
             else:
-                messagebox.showwarning("Advertencia","No se olvide de GUARDAR las cantidades!",parent=ventana_tabla)
+                messagebox.showwarning("Advertencia", "No se olvide de GUARDAR las cantidades!", parent=ventana_tabla)
         except NameError:
-            messagebox.showwarning("Advertencia","No se olvide de guardar las cantidades!",parent=ventana_tabla)
+            messagebox.showwarning("Advertencia", "No se olvide de guardar las cantidades!", parent=ventana_tabla)
         except TypeError:
-            messagebox.showwarning("Advertencia","La solicitud se guardará sin ítems",parent=ventana_tabla)
+            messagebox.showwarning("Advertencia", "La solicitud se guardará sin ítems", parent=ventana_tabla)
             try:
-                sp.manejar_SP(datos,referencias,cantidades,carpeta_mitad)
-                sp.crear_csv_cot(os.path.join(script_directory,carpeta_mitad,nombre_carpeta))
-                messagebox.showinfo("Éxito","Solicitud creada exitósamente\nPresione Aceptar para salir.",parent=ventana_tabla)
+                sp.manejar_SP(datos, referencias, cantidades, carpeta_mitad)
+                sp.crear_csv_cot(os.path.join(script_directory, carpeta_mitad, nombre_carpeta))
+                messagebox.showinfo("Éxito", "Solicitud creada exitósamente\nPresione Aceptar para salir.", parent=ventana_tabla)
                 ventana_tabla.destroy()
             except Exception as e:
-                messagebox.showerror("Error",str(Exception),parent=ventana_tabla)
+                messagebox.showerror("Error", str(Exception), parent=ventana_tabla)
+
+
 
 
     tree.bind("<Double-1>", on_double_click)
@@ -296,36 +336,9 @@ imagen_ico = Image.open(os.path.join(script_directory,"imagen.ico"))
 mi_imagen=imagen_ico.resize((48,48))
 mi_imagen = ImageTk.PhotoImage(mi_imagen)
 
-colordefondo='#2b394a'
-foregroundvariable='grey85'
-root.configure(background=colordefondo)
 # Configurar un estilo para los labels
 style = ttk.Style()
-style.configure("Large.TLabel", font=("Arial", 14), foreground=foregroundvariable,
-                background=colordefondo)
 
-style.configure('Custom.TFrame', foreground=foregroundvariable,
-                background=colordefondo)
-
-style.configure('Custom.TRadiobutton', font=('Arial', 14), foreground=foregroundvariable,
-                background=colordefondo)
-
-style.configure("Bold.TLabel", font=("Arial", 17,'bold'), foreground=foregroundvariable,
-                background=colordefondo)
-
-style.configure("dis.TLabel", font=("Arial", 18), foreground='grey50',
-                background=colordefondo)
-
-style.configure('Custom.TButton', font=('Arial', 13,'bold'), 
-                foreground='grey15',background=colordefondo)
-
-style.configure('Custom.TEntry', 
-                font=('Arial', 25), 
-                fieldbackground='black', 
-                foreground='black', 
-                background=colordefondo)
-style.configure("Switch.TCheckbutton", background=colordefondo, 
-                foreground=foregroundvariable)
 
 # Layout configuration
 root.grid_rowconfigure(0, weight=2)
@@ -506,6 +519,10 @@ searchVar=tk.StringVar()
 search_entry = ttk.Entry(top_frame,style='Custom.TEntry',textvariable=searchVar)
 search_entry.grid(row=1, column=1, columnspan=3, padx=(30,0), pady=(0,10),sticky='ew')
 lista_completa_referencias = list(sp.nombres_de_basedeDatos('PHYWE'))
+
+
+
+
 ##########################
 # Listboxes with scrollbar
 ##########################
@@ -574,6 +591,61 @@ def on_search_entry_change(*args):
 actualizar_ref_listbox()
 
 searchVar.trace_add("write", on_search_entry_change)
+
+quantities = {}
+
+def cargar_csv():
+    global quantities  # Declarar quantities como variable global
+    file_path = filedialog.askopenfilename(filetypes=[("CSV files", "*.csv")])
+    if file_path:
+        try:
+            df = pd.read_csv(file_path)
+        except Exception as e:
+            messagebox.showerror("Error", f"Error al cargar el CSV: {str(e)}")
+            return
+
+        # Convertir el DataFrame a una lista de tuplas (referencia, cantidad)
+        quantities_list = [(str(row[df.columns[0]]).strip(), str(row[df.columns[1]]).strip()) for _, row in df.iterrows()]
+        
+
+        # Obtener las referencias válidas desde el listbox, eliminando espacios en blanco
+        valid_references = set(item.split(' - ')[0].strip() for item in ref_listbox.get(0, tk.END))
+        
+        added_count = 0  # Contador para referencias agregadas
+        not_found_references = []  # Lista para referencias no encontradas
+
+        # Lista para almacenar las cantidades con la referencia completa
+        quantities_with_full_ref = []
+
+        for referencia, cantidad in quantities_list:
+            if referencia in valid_references:
+                for item in ref_listbox.get(0, tk.END):
+                    if item.startswith(referencia + ' - '):
+                        selected_listbox.insert(tk.END, item)
+                        # Añadir a la lista con la referencia completa
+                        quantities_with_full_ref.append((item, cantidad))
+                        added_count += 1
+                        break
+            else:
+                not_found_references.append(referencia)
+
+        if not_found_references:
+            print(f"Referencias no válidas: {', '.join(not_found_references)}")
+
+        messagebox.showinfo("Resultado", f"Referencias agregadas: {added_count}")
+
+        # Asignar la lista actualizada de quantities_with_full_ref a quantities
+        quantities = quantities_with_full_ref
+ 
+
+load_csv_button = ttk.Button(listbox_frame, text="Cargar CSV", command=cargar_csv)
+load_csv_button.grid(row=1, column=0, padx=(10, 10), pady=(10, 10),sticky='ew')
+
+def clear_listbox():
+    selected_listbox.delete(0, tk.END)
+
+clear_button = ttk.Button(listbox_frame, text="Borrar Todo", command=clear_listbox)
+clear_button.grid(row=1, column=3, padx=(10, 10), pady=(10, 10),sticky='ew')
 #########################
 #RADIO BUTTONS FOR OFFER 
 #########################

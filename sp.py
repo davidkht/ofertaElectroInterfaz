@@ -60,7 +60,7 @@ def encontrar_pdf_y_extraer_nombre(archivo):
         'JO': 'JIMMY ORTIZ',
         'NF': 'NELIS FABREGAS',
         'JC': 'JEIMY CADENA',
-        'CR': 'CHRISTIAN ROMERO',
+        'JR': 'JENIFER RIOS',
         'RB': 'ROCÍO BARÓN',
         'DC': 'DANIELA CRISTANCHO',
         'MB': 'MARIA MERCEDES BURGOS',

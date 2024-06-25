@@ -102,7 +102,7 @@ def extraer_informacion():
         "Requerimiento": radio_values["Requerimiento"].get(),
         "Canal": radio_values["Canal"].get(),
         "Presupuesto": presupuestoVar.get(),
-        "Consecutivo": (lambda: consecutivo if 'consecutivo' in locals() else '')(),
+        "Consecutivo": consecutivo,
         "Profesionales": num_pro_var.get(),
         "Dias": num_dias_var.get(),
         "Moneda":monedacomboVar.get()

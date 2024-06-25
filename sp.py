@@ -120,8 +120,8 @@ def manejar_SP(dataUI, df_SP, cantidades,marcaDestino):
     wb_sp = openpyxl.load_workbook(rutaSP)
     hoja_SP = wb_sp.worksheets[0]
 
-    estampillas=float(dataUI['Estampillas'])/100
-    imprevistos=float(dataUI['Imprevistos'])/100
+    estampillas=float(dataUI['Estampillas'])
+    imprevistos=float(dataUI['Imprevistos'])
     ciudad = dataUI['Ciudad']
     institucion=dataUI['Institucion']    
     consecutivo= dataUI['Consecutivo']
